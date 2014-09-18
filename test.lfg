@@ -1,0 +1,61 @@
+
+DEMO   ENGLISH   CONFIG (1.0)
+  ROOTCAT   S.
+  FILES  .
+  LEXENTRIES   (DEMO ENGLISH).
+  RULES   (DEMO ENGLISH).
+  TEMPLATES   (DEMO ENGLISH).
+  GOVERNABLERELATIONS    SUBJ OBJ OBJ2 COMP XCOMP OBL OBL-?+.
+  SEMANTICFUNCTIONS    ADJUNCT  TOPIC FOCUS POSS STANDARD.
+  NONDISTRIBUTIVES    NUM PERS CONJ-FORM.
+  EPSILON   e.
+OPTIMALITYORDER NOGOOD.
+
+----
+DEMO   ENGLISH   RULES (1.0)
+
+   S --> DP: (^ SUBJ)=!;
+     	 VP.
+
+   VP --> V: ^=!;
+      	  (DP: (^ OBJ)=!).
+
+   DP --> D: (^ SPEC)=!;
+      	  NP.
+
+   NP --> N.
+      	  
+----
+DEMO   ENGLISH   TEMPLATES (1.0)
+
+   TRANS(P) = "transitive verb"
+	      (^ PRED)='P<(^ SUBJ)(^ OBJ)>'.
+
+   INTRANS(P) = "intransitive verb"
+	      (^ PRED)='P<(^ SUBJ)>'.
+
+   V3SG = "third singular verb form"
+	  (^ SUBJ NUM)= SG
+	  (^ SUBJ PERS)=3
+	  @VPRES.
+
+   VPRES = (^ TENSE)=PRES.
+
+----
+DEMO ENGLISH LEXICON (1.0)
+
+a         D * (^ PRED)='a' § some :: [((SPEC ^)_s VAR):e --o ((SPEC ^)_s RESTR):t] --o [[(SPEC ^)_s:e --o X:t] --o X:t].
+
+every     D * (^ PRED)='a' § every :: [((SPEC ^)_s VAR):e --o ((SPEC ^)_s RESTR):t] --o [[(SPEC ^)_s:e --o X:t] --o X:t].
+
+cat       N * (^ PRED)='cat' § cat :: (^_s VAR):e --o (^_s RESTR):t.
+
+sleeps 	  V * @(INTRANS SLEEP)
+	      @V3SG § sleep :: (^ SUBJ)_s:e --o ^_s:t.
+
+dog       N * (^ PRED)='dog' § dog :: (^_s VAR):e --o (^_s RESTR):t.
+
+devours   V * @(TRANS DEVOUR)
+	      @V3SG § devour :: (^ SUBJ)_s:e --o (^ OBJ)_s:e --o ^_s:t.
+
+----
