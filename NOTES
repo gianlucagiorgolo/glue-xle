@@ -3,3 +3,7 @@ There are still some things I have to work on for the implemantation to be compl
 1. The functional description language is not complete, it still lacks the possibility of talking about sets (needed for the semantics of modification)
 
 2. The way in which we generate the target formula for the proof doesn't take into consideration monadic layers. In the unimodal setting we can probably just check if we have positive instances of monadic formulae and then just add a monadic layer to the resulting formula (we don't need more than one because <><>a => <>a). The final layer may be useless in case the positive instance is consumed by a negative one... The multimodal case is more complicated. 
+
+3. Templates (implemented but need to change the way the lexicon is read!!!!)
+
+4. The Kleene stuff (optionality, alternation)

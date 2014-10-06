@@ -238,7 +238,7 @@ collectFConstraints dom = do
           arg2 = getArgAsElement "2" constr                                                     
           fvar = case rel of
                    Equality -> getArg "1" arg1
-                   InSet -> trim $ strContent arg1
+                   InSet -> trim $ strContent arg2
           feature = case rel of
                       Equality -> getArg "2" arg1
                       InSet -> no_feature
@@ -246,12 +246,15 @@ collectFConstraints dom = do
                      "eq" -> Equality
                      "in_set" -> InSet
                      _ -> undefined
-          val = case findChild (unqual "label") arg2 of
-                      Nothing -> let arg2str = trim $ strContent $ arg2
+          val = case rel of
+                   Equality -> valFun arg2
+                   InSet -> valFun arg1
+          valFun arg = case findChild (unqual "label") arg of
+                      Nothing -> let arg2str = trim $ strContent $ arg
                                  in case isPrefixOf "var:" arg2str of
                                    True -> FVar arg2str
                                    False -> Atom arg2str
-                      Just _ -> SemForm $ getArg "1" arg2
+                      Just _ -> SemForm $ getArg "1" arg
                
 reconstructFStructure :: Context -> Map.Map Context (Set.Set Context) -> [(Context,(FVar,Feature,Relation,Value))] -> FStructure
 reconstructFStructure cxt contextMap fconstraints = foldr aux Map.empty constraints where
@@ -269,3 +272,8 @@ reconstructFStructure cxt contextMap fconstraints = foldr aux Map.empty constrai
 fromValue (FVar fvar) = fvar
 fromValue _ = undefined                
 
+-- Debug and pretty printing
+
+printXMLResults :: FilePath -> IO ()
+printXMLResults fp = parseXMLOutput fp >>= mapM_ (\(c,f) -> putStrLn $ (drawCStructure c) ++ "\n" ++ (drawFStructure f))
+   

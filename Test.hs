@@ -16,9 +16,7 @@ import Parsers hiding (parseLinearTermTemplate)
 import qualified Data.Map as Map
 
 -- Sigma
-import Sigma
 import qualified DataTypes as DT
-import Txt
 
 tests file = TestList [
           xmlTests file ,
@@ -121,16 +119,16 @@ test_getFStructures file = "getFStructures" ~: getFStructures dom concCxts cxtMa
    concCxts = collectTerminals choiceTree
    cxtMap = createContextMap concCxts cxtGroups
    test_xml_file_fstructures = [("A1",fstruct1),("A2",fstruct2)]
-   fstruct1 = Map.fromList [("var:0",(Set.empty,Map.fromList $ [("PRED",SemForm "SEE"),("SUBJ",FVar "var:6"),("OBJ",FVar "var:4"),("TENSE",Atom "PAST")] ++ [("ADJUNCT",FVar "var:1")])),("var:6",(Set.empty, Map.fromList $ [("PRED",SemForm "MARY"),("CASE",Atom "NOM"),("NUM",Atom "SG")])),("var:4",(Set.empty,Map.fromList $ [("PRED", SemForm "GIRL"),("CASE",Atom "ACC"),("INDEF",Atom "+"),("NUM",Atom "SG")])),("var:2",(Set.singleton "var:1",Map.fromList $ [("PRED",SemForm "WITH"), ("OBJ",FVar "var:3")])),("var:3",(Set.empty,Map.fromList $ [("CASE",Atom "ACC"),("DEF",Atom "+"),("NUM",Atom "SG"),("PCASE",Atom "WITH"),("PRED",SemForm "TELESCOPE")]))]
-   fstruct2 = Map.fromList [("var:0",(Set.empty,Map.fromList $ [("PRED",SemForm "SEE"),("SUBJ",FVar "var:6"),("OBJ",FVar "var:4"),("TENSE",Atom "PAST")])),("var:6",(Set.empty,Map.fromList $ [("PRED",SemForm "MARY"),("CASE",Atom "NOM"),("NUM",Atom "SG")])),("var:4",(Set.empty,Map.fromList $ [("PRED", SemForm "GIRL"),("CASE",Atom "ACC"),("INDEF",Atom "+"),("NUM",Atom "SG")] ++ [("ADJUNCT",FVar "var:5")])),("var:2",(Set.singleton "var:5",Map.fromList $ [("PRED",SemForm "WITH"), ("OBJ",FVar "var:3")])),("var:3",(Set.empty,Map.fromList $ [("CASE",Atom "ACC"),("DEF",Atom "+"),("NUM",Atom "SG"),("PCASE",Atom "WITH"),("PRED",SemForm "TELESCOPE")]))]
+   fstruct1 = Map.fromList [("var:0",(Set.empty,Map.fromList $ [("PRED",SemForm "SEE"),("SUBJ",FVar "var:6"),("OBJ",FVar "var:4"),("TENSE",Atom "PAST")] ++ [("ADJUNCT",FVar "var:1")])),("var:6",(Set.empty, Map.fromList $ [("PRED",SemForm "MARY"),("CASE",Atom "NOM"),("NUM",Atom "SG")])),("var:4",(Set.empty,Map.fromList $ [("PRED", SemForm "GIRL"),("CASE",Atom "ACC"),("INDEF",Atom "+"),("NUM",Atom "SG")])),("var:1",(Set.singleton "var:2",Map.empty)),("var:2",(Set.empty,Map.fromList $ [("PRED",SemForm "WITH"), ("OBJ",FVar "var:3")])),("var:3",(Set.empty,Map.fromList $ [("CASE",Atom "ACC"),("DEF",Atom "+"),("NUM",Atom "SG"),("PCASE",Atom "WITH"),("PRED",SemForm "TELESCOPE")]))]
+   fstruct2 = Map.fromList [("var:0",(Set.empty,Map.fromList $ [("PRED",SemForm "SEE"),("SUBJ",FVar "var:6"),("OBJ",FVar "var:4"),("TENSE",Atom "PAST")])),("var:6",(Set.empty,Map.fromList $ [("PRED",SemForm "MARY"),("CASE",Atom "NOM"),("NUM",Atom "SG")])),("var:4",(Set.empty,Map.fromList $ [("PRED", SemForm "GIRL"),("CASE",Atom "ACC"),("INDEF",Atom "+"),("NUM",Atom "SG")] ++ [("ADJUNCT",FVar "var:5")])),("var:5",(Set.singleton "var:2",Map.empty)),("var:2",(Set.empty,Map.fromList $ [("PRED",SemForm "WITH"), ("OBJ",FVar "var:3")])),("var:3",(Set.empty,Map.fromList $ [("CASE",Atom "ACC"),("DEF",Atom "+"),("NUM",Atom "SG"),("PCASE",Atom "WITH"),("PRED",SemForm "TELESCOPE")]))]
 
 
 -- sigma stuff
 
 sigmaTests = TestList [ test_parseSigmaConstraint
-                      , test_parseLinearTermTemplate ]
-
-
+                      , test_parseLinearTermTemplate
+                      , test_parseTemplate
+                      , test_expandTemplateCall ]
 parseSigmaConstraint e = case parse sigmaConstraint "" e of
                            Right x -> x
                            _ -> undefined
@@ -152,6 +150,23 @@ test_parseLinearTermTemplate = "parseLinearTermTemplate" ~: TestList [
   , parseLinearTermTemplate "(^_s VAR):e --o (^_s RESTR):t" ~?= LinearImplication (Atomic $ SigmaOutsideIn (SigmaProjection Up "") ["VAR"] "e") (Atomic $ SigmaOutsideIn (SigmaProjection Up "") ["RESTR"] "t")
   , parseLinearTermTemplate "[((SPEC ^)_s VAR):e --o ((SPEC ^)_s RESTR):t] --o [[(SPEC ^)_s:e --o X:t] --o X:t]" ~?= LinearImplication (LinearImplication (Atomic $ SigmaOutsideIn (SigmaProjection (FInsideOut ["SPEC"] Up) "") ["VAR"] "e") (Atomic $ SigmaOutsideIn (SigmaProjection (FInsideOut ["SPEC"] Up) "") ["RESTR"] "t")) (LinearImplication (LinearImplication (Atomic $ SigmaProjection (FInsideOut ["SPEC"] Up) "e") (Atomic $ Variable "X" "t")) (Atomic $ Variable "X" "t"))
  ]
+
+parseTemplate e = case runParser template [] "" e of
+                     Right x -> x
+                     Left _ -> undefined
+
+test_parseTemplate = "parseTemplate" ~: TestList [
+    parseTemplate "TMP=ABC 123." ~?= Template "TMP" [] [StringToken "ABC", SpacingToken " ", StringToken "123"]
+  , parseTemplate "TMP(A)=ABC A 123." ~?= Template "TMP" ["A"] [StringToken "ABC", SpacingToken " ", ArgumentToken "A", SpacingToken " ", StringToken "123"]
+  , parseTemplate "TMP(A B)=ABC A 123 B." ~?= Template "TMP" ["A","B"] [StringToken "ABC", SpacingToken " ", ArgumentToken "A", SpacingToken " ", StringToken "123", SpacingToken " ",ArgumentToken "B"]
+  ]
+
+test_expandTemplateCall = "expandTemplateCall" ~: TestList [
+    expandTemplateCall (TemplateCall "T1" []) (Map.fromList [("T1",Template "T1" [] [StringToken "FOO"])]) ~?= "FOO"
+  , expandTemplateCall (TemplateCall "T1" ["BAR"]) (Map.fromList [("T1",Template "T1" ["A"] [StringToken "FOO", SpacingToken " ", ArgumentToken "A"])]) ~?= "FOO BAR"
+  , expandTemplateCall (TemplateCall "T1" ["BAR","BAZ"]) (Map.fromList [("T1",Template "T1" ["A","B"] [StringToken "FOO", SpacingToken " ", ArgumentToken "A", SpacingToken " ", ArgumentToken "B"])]) ~?= "FOO BAR BAZ"
+  , expandTemplateCall (TemplateCall "T1" ["BAR","BAZ"]) (Map.fromList [("T1",Template "T1" ["A","B"] [StringToken "FOO", SpacingToken " ", ArgumentToken "A", SpacingToken " ", TemplateCallToken (TemplateCall "T2" []) ,SpacingToken " ", ArgumentToken "B"]),("T2",Template "T2" [] [StringToken "hello"])]) ~?= "FOO BAR hello BAZ"
+  ]
 
 testWrapper file = runTestTT (tests file)
 

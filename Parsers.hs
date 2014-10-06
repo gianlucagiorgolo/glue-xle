@@ -27,6 +27,8 @@ maybeBetween open close p = do
             close
             return a
 
+trim = reverse . dropWhile isSpace . reverse . dropWhile isSpace
+
 -- lambda stuff
 
 data LambdaParserState = LambdaParserState { accumulator :: Int
@@ -50,7 +52,9 @@ getVarId name = do
 lambdaExprParser :: Parsec String LambdaParserState LambdaTerm
 lambdaExprParser = do char '\\'
                       var <- lambdaVariable
-                      char '.'
+                      spaces
+                      string "->"
+                      spaces
                       expr <- lambdaExprParser
                       return $ Lambda var expr
                <|> do char '<'
@@ -222,7 +226,8 @@ path = do
           char ')'
           spaces
           return $ FOutsideIn fc feats
-       _ -> do
+       _ -> try set <|> normal where 
+         normal = do
           spaces
           feats <- features
           fc <- fConstraint
@@ -230,6 +235,17 @@ path = do
           char ')'
           spaces
           return $ FInsideOut feats fc -- feats fc
+         set = do
+          spaces
+          feats <- features
+          spaces
+          char '$'
+          spaces
+          fc <- fConstraint
+          spaces
+          char ')'
+          spaces
+          return $ FInsideOutSet feats fc -- feats fc
            
 feature = many1 alphaNum
 features = sepEndBy1 feature (many1 space)
@@ -303,9 +319,73 @@ splitLexicon lexicon = runState (aux AllTheRest lexicon) Map.empty where
                                  rest' <- aux Lexicon rest
                                  return $ xle_stuff ++ "." ++ rest'
       aux _ [] = return ""                              
-                                                               
 
-trim = reverse . dropWhile isSpace . reverse . dropWhile isSpace
+-- Templates
+
+templateName :: Parsec String a Name
+templateName = many1 alphaNum                                                               
+
+templateArgument :: Parsec String a Argument
+templateArgument = many1 alphaNum
+
+template :: Parsec String [Argument] Template
+template = do
+    spaces
+    name <- templateName
+    spaces
+    args <- arguments
+    putState args -- we store the list of argument names
+    spaces
+    char '='
+    raw <- many1 $ try templateSpacingToken <|> try templateStringToken <|> (templateCall >>= \x -> return $ TemplateCallToken x)
+    spaces
+    char '.'
+    return $ Template name args raw
+
+spaceChars = " \r\t\n"
+fullStopChars = "."
+delimiterChars = "()[]\\{}"
+templateCallChars = "@"
+reservedChars = spaceChars ++ fullStopChars ++ delimiterChars ++ templateCallChars
+
+
+templateStringToken :: Parsec String [Argument] RawTemplateBody
+templateStringToken = do content <- many1 $ noneOf reservedChars
+                         args <- getState
+                         case elem content args of
+                            True -> return $ ArgumentToken content
+                            False -> return $ StringToken content
+
+templateSpacingToken :: Parsec String a RawTemplateBody
+templateSpacingToken = many1 space >>= \x -> return $ SpacingToken x
+
+arguments :: Parsec String a [Argument]
+arguments = (try list) <|> noArg where
+      list = do
+         spaces
+         char '('
+         args <- sepEndBy1 templateArgument (many1 space)
+         char ')'
+         return args
+      noArg = return []
+
+templateCall :: Parsec String a TemplateCall
+templateCall = (try withParams) <|> withoutParams where
+     withParams = do
+      char '@'
+      char '('
+      name <- templateName
+      many1 space
+      args <- sepEndBy1 anythingElse (many1 space)
+      char ')'
+      spaces
+      return $ TemplateCall name args
+     withoutParams = do
+      char '@'
+      name <- templateName
+      spaces
+      return $ TemplateCall name []
+     anythingElse = many1 $ noneOf reservedChars
 
 foo = do
     s <- readFile "/Users/Ggiorgolo/tmp/test.lfg"

@@ -2,6 +2,7 @@ module Sigma where
 
 import DataStructures
 import qualified Data.Map as Map
+import qualified Data.Set as Set
 import Data.Maybe
 import DataTypes
 import Control.Monad.State
@@ -119,6 +120,10 @@ followPath fvar (FInsideOut features fc) f_struct = aux features fvar' where
                                   Just m -> case Map.lookup f m of
                                                  Nothing -> error $ "The feature " ++ f ++ " is not present in the f-structure, maybe there's some problem in the lexicon?"
                                                  Just fvar -> aux fs fvar
+followPath fvar (FInsideOutSet features fc) f_struct = followPath setFvar (FInsideOut features fc) f_struct where
+         setFvar = fst $ Map.findMin $ Map.filter (\(s,_) -> Set.member fvar s) f_struct
+followPath _ (FOutsideInSet _ _) _ = error $ "Outside-in paths with sets are not implemented."
+         
 
 reverseMap :: (Ord c, Ord b) => Map.Map a (Map.Map b c) -> Map.Map c (Map.Map b a)
 reverseMap m = foldr (\(a,bcs) m' -> foldr (f a) m' bcs) Map.empty $ Map.toList $ Map.map Map.toList m where

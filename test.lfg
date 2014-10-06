@@ -24,6 +24,10 @@ DEMO   ENGLISH   RULES (1.0)
       	  NP.
 
    NP --> N.
+
+   N --> AP*: ! $ (^ ADJ).
+
+   AP --> A.
       	  
 ----
 DEMO   ENGLISH   TEMPLATES (1.0)
@@ -44,18 +48,33 @@ DEMO   ENGLISH   TEMPLATES (1.0)
 ----
 DEMO ENGLISH LEXICON (1.0)
 
-a         D * (^ PRED)='a' § some :: [((SPEC ^)_s VAR):e --o ((SPEC ^)_s RESTR):t] --o [[(SPEC ^)_s:e --o X:t] --o X:t].
+a         D * (^ PRED)='a' § @(DET some).
 
-every     D * (^ PRED)='a' § every :: [((SPEC ^)_s VAR):e --o ((SPEC ^)_s RESTR):t] --o [[(SPEC ^)_s:e --o X:t] --o X:t].
+every     D * (^ PRED)='every' § @(DET every).
 
-cat       N * (^ PRED)='cat' § cat :: (^_s VAR):e --o (^_s RESTR):t.
+cat       N * (^ PRED)='cat' § @(CN cat).
 
 sleeps 	  V * @(INTRANS SLEEP)
-	      @V3SG § sleep :: (^ SUBJ)_s:e --o ^_s:t.
+	      @V3SG § @(IV sleep).
 
-dog       N * (^ PRED)='dog' § dog :: (^_s VAR):e --o (^_s RESTR):t.
+dog       N * (^ PRED)='dog' § @(CN dog).
 
 devours   V * @(TRANS DEVOUR)
-	      @V3SG § devour :: (^ SUBJ)_s:e --o (^ OBJ)_s:e --o ^_s:t.
+	      @V3SG § @(TV devour).
+
+big       A * (^ PRED)='big' § @(MOD big).
+
+----
+DEMO ENGLISH SEMANTICTEMPLATES (1.0)
+
+DET(P) = P :: [((SPEC ^)_s VAR):e --o ((SPEC ^)_s RESTR):t] --o [[(SPEC ^)_s:e --o X:t] --o X:t].
+
+CN(P) = P :: (^_s VAR):e --o (^_s RESTR):t.
+
+TV(P) = P :: (^ SUBJ)_s:e --o (^ OBJ)_s:e --o ^_s:t.
+
+IV(P) = P :: (^ SUBJ)_s:e --o ^_s:t.
+
+MOD(P) = \p\x . (and(P(x))(p(x))) :: [((ADJ $ ^)_s VAR):e --o ((ADJ $ ^)_s RESTR):t] --o [((ADJ $ ^)_s VAR):e --o ((ADJ $ ^)_s RESTR):t].
 
 ----

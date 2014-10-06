@@ -10,6 +10,11 @@ data BinTree a = Binary (BinTree a) a (BinTree a)
                | Unary a (BinTree a)
                | Terminal a deriving (Eq, Show)
 
+instance Functor BinTree where
+    fmap f (Binary l a r) = Binary (fmap f l) (f a) (fmap f r)
+    fmap f (Unary a c) = Unary (f a) (fmap f c)
+    fmap f (Terminal a) = Terminal $ f a
+
 getRootValue :: BinTree a -> a
 getRootValue (Binary _ a _) = a
 getRootValue (Unary a _) = a
@@ -70,7 +75,9 @@ data SigmaConstraint = Variable String Type
 data FConstraint = Up
                  | Down
                  | FOutsideIn FConstraint [Feature]
-                 | FInsideOut [Feature] FConstraint deriving (Eq, Show, Ord)
+                 | FInsideOut [Feature] FConstraint
+                 | FOutsideInSet FConstraint [Feature]
+                 | FInsideOutSet [Feature] FConstraint deriving (Eq, Show, Ord)
 
 type Modality = String
 
@@ -79,6 +86,37 @@ data LinearTermTemplate = Atomic SigmaConstraint
                         | LinearTensor LinearTermTemplate LinearTermTemplate
                         | Diamond Modality LinearTermTemplate deriving (Eq, Show, Ord)
 
+data Template = Template { name :: Name
+                         , argumentList :: [Argument]
+                         , rawBody :: [RawTemplateBody] } deriving (Eq, Show)
+
+data RawTemplateBody = StringToken String
+                     | SpacingToken String
+                     | SeparatorToken String
+                     | ArgumentToken String
+                     | TemplateCallToken TemplateCall deriving (Eq, Show)
+
+data TemplateCall = TemplateCall { callName :: Name
+                                 , values :: [String] } deriving (Eq, Show)
+
+type TemplateEnvironment = Map.Map Name Template
+
+expandTemplateCall :: TemplateCall -> TemplateEnvironment -> String
+expandTemplateCall tc te = foldr aux "" (rawBody t) where
+               t = case Map.lookup (callName tc) te of
+                        Nothing -> error $ "Trying to call semantic template " ++ (callName tc) ++ " which is not defined!"
+                        Just x -> x
+               bindings = Map.fromList $ zip (argumentList t) (values tc) -- should do some error checking, such as the length of the list call...
+               aux (StringToken s) acc = s ++ acc
+               aux (SpacingToken s) acc = s ++ acc
+               aux (SeparatorToken s) acc = s ++ acc
+               aux (ArgumentToken s) acc = (bindings Map.! s) ++ acc
+               aux (TemplateCallToken call) acc = (expandTemplateCall call te) ++ acc -- if there are recursive calls this thing enters a loop...
+
+type Name = String
+
+type Argument = String
+
 type SigmaProjection = Map.Map FVar SigmaStructure
 
 type Lexicon = Map.Map Token [(DT.LambdaTerm,LinearTermTemplate)]
@@ -86,3 +124,25 @@ type Lexicon = Map.Map Token [(DT.LambdaTerm,LinearTermTemplate)]
 type Token = String -- for now, we may want to deal with morphology...
 
 type ErrorMessage = String
+
+-- Debug and pretty printing
+
+toTree :: BinTree a -> Tree a
+toTree (Binary l a r) = Node a [toTree l,toTree r]
+toTree (Unary a c) = Node a [toTree c]
+toTree (Terminal a) = Node a []
+
+drawBinTree :: Show a => BinTree a -> String
+drawBinTree = drawTree . toTree . fmap show
+
+drawCStructure :: CStructure -> String
+drawCStructure (CStructure t phi) = tdraw ++ "\n" ++ phidraw where
+           tdraw = drawBinTree t
+           phidraw = Map.foldrWithKey aux "" phi
+           aux id fvar acc = show id ++ " --> " ++ fvar ++ "\n" ++ acc
+
+drawFStructure :: FStructure -> String
+drawFStructure = Map.foldrWithKey aux "" where
+      aux fvar (set,featureMap) acc = fvar ++ " --> " ++ show (Set.toList set) ++ "\n" ++ Map.foldrWithKey (aux' $ length fvar) "" featureMap ++ "\n" ++ acc
+      aux' l feat val acc = take (l + 5) (repeat ' ') ++ feat ++ " --> " ++ show val ++ "\n" ++ acc
+
