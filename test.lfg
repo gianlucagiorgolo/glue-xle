@@ -23,9 +23,8 @@ DEMO   ENGLISH   RULES (1.0)
    DP --> D: (^ SPEC)=!;
       	  NP.
 
-   NP --> N.
-
-   N --> AP*: ! $ (^ ADJ).
+   NP -->  AP*: ! $ (^ ADJ);
+           N.
 
    AP --> A.
       	  
@@ -75,6 +74,6 @@ TV(P) = P :: (^ SUBJ)_s:e --o (^ OBJ)_s:e --o ^_s:t.
 
 IV(P) = P :: (^ SUBJ)_s:e --o ^_s:t.
 
-MOD(P) = \p\x . (and(P(x))(p(x))) :: [((ADJ $ ^)_s VAR):e --o ((ADJ $ ^)_s RESTR):t] --o [((ADJ $ ^)_s VAR):e --o ((ADJ $ ^)_s RESTR):t].
+MOD(Q) = \P -> \X -> (and (Q X) (P X)) :: [((ADJ $ ^)_s VAR):e --o ((ADJ $ ^)_s RESTR):t] --o [((ADJ $ ^)_s VAR):e --o ((ADJ $ ^)_s RESTR):t].
 
 ----

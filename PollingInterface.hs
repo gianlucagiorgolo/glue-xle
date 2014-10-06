@@ -49,7 +49,7 @@ createEnv grammar = do
      (gram,gram_h) <- openTempFile tmpDir "gram_file"
      gram <- canonicalizePath gram
      grammar_contents <- readFile grammar
-     (grammar_contents,lex) <- return $ splitLexicon grammar_contents
+     (grammar_contents,lex) <- return $ reconstructLexicon $ splitLexicon grammar_contents
      hPutStrLn gram_h grammar_contents
      hFlush gram_h
      -- setting the buffering properties

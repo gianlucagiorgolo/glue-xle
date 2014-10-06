@@ -2,7 +2,6 @@ module Parsers where
 
 -- import Data.Char
 import qualified Data.Map as Map
-import Data.List
 import Data.List.Split
 import Control.Monad.State
 import Data.Char
@@ -11,6 +10,7 @@ import DataStructures
 import Text.Parsec
 import Text.Parsec.Expr
 import DataTypes
+
 
 
 -- utils 
@@ -289,6 +289,8 @@ parseContext e = fromRight $ parse context "" e
 
 -- Lexicon stuff
 
+
+{-
 data LexiconStates = AllTheRest | Lexicon
 
 splitLexicon :: String -> (String,Lexicon)
@@ -318,7 +320,117 @@ splitLexicon lexicon = runState (aux AllTheRest lexicon) Map.empty where
                                  put $ Map.insert word [(lambda,form_temp)] lex
                                  rest' <- aux Lexicon rest
                                  return $ xle_stuff ++ "." ++ rest'
-      aux _ [] = return ""                              
+      aux _ [] = return ""  
+-}
+
+data Section = ConfigSec 
+             | RulesSec
+             | TemplatesSec
+             | LexiconSec
+             | SemanticTemplatesSec deriving (Eq, Ord, Show)
+
+splitLexicon :: String -> Map.Map Section String
+splitLexicon s = aux (lines s) Nothing Map.empty where
+     aux [] _ m = m
+     aux (l : rest) (Just sec) m | isSectionHeader l = aux rest (Just $ getSectionType l) (Map.insert (getSectionType l) l m)
+                                 | otherwise = aux rest (Just sec) (Map.insertWith (\a b -> b ++ "\n" ++ a) sec l m)
+     aux (l : rest) Nothing m | isSectionHeader l = aux rest (Just $ getSectionType l) (Map.insert (getSectionType l) l m) 
+                              | otherwise = aux rest Nothing m -- useless space
+     isSectionHeader l = length ws == 4 && elem (ws !! 2) ["CONFIG", "RULES", "LEXICON", "TEMPLATES", "SEMANTICTEMPLATES"] where
+        ws = words l
+     getSectionType l = let ws = words l
+                        in case (ws !! 2) of
+                             "CONFIG" -> ConfigSec
+                             "RULES" -> RulesSec
+                             "TEMPLATES" -> TemplatesSec
+                             "LEXICON" -> LexiconSec
+                             "SEMANTICTEMPLATES" -> SemanticTemplatesSec
+                             _ -> undefined
+
+
+
+reconstructLexicon :: Map.Map Section String -> (String,Lexicon)
+reconstructLexicon m = (unlines [config,rules,templs,xlelex],lexicon) where
+     config = Map.findWithDefault "" ConfigSec m
+     rules = Map.findWithDefault "" RulesSec m
+     templs = Map.findWithDefault "" TemplatesSec m
+     (xlelex,lexicon) = createXLELexicon $ expandSemanticTemplates (Map.findWithDefault "" LexiconSec m) semTempls
+     semTempls = createSemanticTemplates $ Map.findWithDefault "" SemanticTemplatesSec m
+
+createXLELexicon :: String -> (String,Lexicon)
+createXLELexicon s = runState (aux s) Map.empty where
+      aux ('-' : '-' : '-' : '-' : rest) = aux rest >>= \rest' -> return $ "----" ++ rest'
+      aux (c : rest) | isSpace c = aux rest >>= \rest' -> return $ c : rest'
+                     | otherwise = let line = c : takeWhile (/= '\n') rest 
+                                       headerBool = length (words line) == 4 && (words line) !! 2 == "LEXICON"
+                                   in case headerBool of 
+                                    True -> aux (tail $ dropWhile (/= '\n') rest) >>= \rest' -> return $ line ++ rest'
+                                    False -> do
+                                     definition <- return $ c : (takeWhile (/= '.') rest)
+                                     rest <- return $ tail $ dropWhile (/= '.') rest
+                                     word <- return $ takeWhile (not . isSpace) definition
+                                     xle_stuff <- return $ takeWhile (/= '§') definition
+                                     semantic_stuff <- return $ tail $ dropWhile (/= '§') definition
+                                     (lambda : form_temp : _) <- return $ map trim $ splitOn "::" semantic_stuff
+                                     lambda <- return $ case parseLambdaTerm lambda of
+                                                         Left err -> error $ "Problem in parsing this definition (specifically the lambda term):\n" ++ definition ++ "\nParsec error: " ++ show err
+                                                         Right l -> l
+                                     form_temp <- return $ case parseLinearTermTemplate form_temp of
+                                                            Left err -> error $ "Problem in parsing this definition (specifically the linear formula):\n" ++ definition ++ "\nParsec error: " ++ show err
+                                                            Right f -> f
+                                     lex <- get
+                                     put $ Map.insert word [(lambda,form_temp)] lex
+                                     rest' <- aux rest
+                                     return $ xle_stuff ++ "." ++ rest'
+      aux [] = return ""  
+
+createSemanticTemplates :: String -> TemplateEnvironment
+createSemanticTemplates s = aux s Map.empty where
+   aux [] m = m
+   aux ('-' : '-' : '-' : '-' : _) m = m
+   aux (c : rest) m | isSpace c = aux rest m
+                    | otherwise = aux rest' m' where
+                       line = c : takeWhile (/= '\n') rest
+                       headerBool = length (words line) == 4 && (words line) !! 2 == "SEMANTICTEMPLATES"
+                       rest' = case headerBool of 
+                                 False -> tail $ dropWhile (/= '.') rest
+                                 True -> tail $ dropWhile (/= '\n') rest
+                       def = (c : takeWhile (/= '.') rest) ++ "."
+                       m' = case headerBool of
+                                 True -> m
+                                 False -> case runParser template [] "" def of
+                                    Right x -> Map.insert (name x) x m
+                                    Left _ -> error $ "Error in parsing template: " ++ def
+                       
+{-createSemanticTemplates s = aux (lines s) Map.empty where
+    aux [] m = m                          
+    aux ("----" : _) m = m
+    aux (l : rest) m = aux rest m' where
+       ws = words l
+       m' = case length ws == 4 && (ws !! 2) == "SEMANTICTEMPLATES" of
+               True -> m
+               False -> case runParser template [] "" l of
+                          Right x -> Map.insert (name x) x m
+                          Left err -> error $ "Error in parsing template: " ++ l
+-}
+expandSemanticTemplates :: String -> TemplateEnvironment -> String
+expandSemanticTemplates s te = aux s False where
+       paux = many1 (try tempcall <|> anythingElse)
+       anythingElse = many1 $ noneOf "@"
+       tempcall = do
+         tc <- templateCall
+         return $ expandTemplateCall tc te
+       aux [] _ = []
+       aux ('.' : rest) _ = '.' : aux rest False
+       aux ('§' : rest) _ = '§' : aux rest True
+       aux (c : rest) False = c : aux rest False
+       aux s True = let def = (takeWhile (/= '.')) s
+                        rest = dropWhile (/= '.') s
+                    in case parse paux "" def of
+                        Right x -> concat x ++ aux rest True
+                        Left _ -> error $ "Error when processing the lexicon: " ++ s
+
+
 
 -- Templates
 
@@ -337,7 +449,7 @@ template = do
     putState args -- we store the list of argument names
     spaces
     char '='
-    raw <- many1 $ try templateSpacingToken <|> try templateStringToken <|> (templateCall >>= \x -> return $ TemplateCallToken x)
+    raw <- many1 $ try templateSpacingToken <|> try templateStringToken <|> try templateSeparatorToken <|> (templateCall >>= \x -> return $ TemplateCallToken x)
     spaces
     char '.'
     return $ Template name args raw
@@ -348,6 +460,9 @@ delimiterChars = "()[]\\{}"
 templateCallChars = "@"
 reservedChars = spaceChars ++ fullStopChars ++ delimiterChars ++ templateCallChars
 
+templateSeparatorToken :: Parsec String a RawTemplateBody
+templateSeparatorToken = do s <- many1 $ Text.Parsec.oneOf delimiterChars
+                            return $ SeparatorToken s
 
 templateStringToken :: Parsec String [Argument] RawTemplateBody
 templateStringToken = do content <- many1 $ noneOf reservedChars
@@ -387,9 +502,15 @@ templateCall = (try withParams) <|> withoutParams where
       return $ TemplateCall name []
      anythingElse = many1 $ noneOf reservedChars
 
+
+--test
+
 foo = do
-    s <- readFile "/Users/Ggiorgolo/tmp/test.lfg"
-    (z,l) <- return $ splitLexicon s
-    putStrLn z
-    print l
-    
+  conts <- readFile "/Users/Ggiorgolo/work/haskell-xle-wrapper/test.lfg"
+  (xle,lex) <- return $ reconstructLexicon $ splitLexicon conts
+  putStrLn xle
+  print lex
+
+bar = do
+  conts <- readFile "/Users/Ggiorgolo/work/haskell-xle-wrapper/test.lfg"
+  print $ splitLexicon conts
