@@ -5,7 +5,7 @@ name:                glue-xle
 version:             0.1.0.0
 synopsis:            A wrapper around xle to do semantics
 -- description:         
--- license:             
+license:             MIT
 license-file:        LICENSE
 author:              Gianluca Giorgolo
 maintainer:          gianluca.giorgolo@gmail.com
