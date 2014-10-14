@@ -66,6 +66,36 @@ To terminate the wrapper type `:quit` (actually also CTRL-D or CTRL-C should do 
 
 # Grammar writing
 
+The grammar specification language is an extension of the standard XLE one. We just add semantic informati
+on.
+
+## Semantics
+
+Semantic resources are declared in the `LEXICON` section of the grammar. To declare the semantic resources you simply append them to the usual XLE definition of a lexical item, dividing the two with the character `§` (Ash asked me to change it to something else). For example if the standard lexical entry for the word *dog* is:
+
+	dog N * (^ PRED)='dog'.
+
+the same entry becomes:
+
+	dog N * (^ PRED)='dog' § dog :: (^_s VAR):e --o (^_s RESTR):t.
+
+The semantic part of the lexical entries has two parts: 1. a *lambda term* representing the meaning of the resource, 2. a recipe to construct a linear formula (glue formula) from the sigma-projection of the current f-structure.
+
+### Syntax for lambda terms
+Literals are indicated by single quotes.
+
+	LambdaTerm := Constant | Variable | Application | LambdaAbstraction | Pair | FirstProjection | SecondProjection 
+	Constant := [a-z][a-zA-Z1-0]* # any sequence of letter and digits starting with a lower case letter
+	Variable := [A-Z][a-zA-Z1-0]* # any sequence of letter and digits starting with an upper case letter
+	Application := '(' LambdaTerm ' ' LambdaTerm ')' # The outer parentheses are optional. Application is left-associative so `(a b c)` stands for `((a b) c)`.
+	LambdaAbstraction := '\' Variable '->' LambdaTerm # Lambda abstraction is right-associative
+	Pair := '<' LambdaTerm ',' LambdaTerm '>'
+	FirstProjection := '1(' LambdaTerm ')'
+	SecondProjection := '2(' LambdaTerm ')'
+
+Also unit and bind are implemented but don't use them for now.
+
+## Semantic templates
 
 
 # Known Issues and limitations
@@ -81,3 +111,11 @@ To terminate the wrapper type `:quit` (actually also CTRL-D or CTRL-C should do 
    you typed, the problem may be with the parsing process. 
 
 3. At this point only single file grammars are supported.
+
+4. No semantics for rules for now.
+
+5. No ambiguity or multiple resources (multiple resources can be simulated with pairs).
+
+6. No Kleene operations.
+
+7. Don't use monads for now.
