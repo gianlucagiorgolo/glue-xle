@@ -84,14 +84,16 @@ The semantic part of the lexical entries has two parts: 1. a *lambda term* repre
 ### Syntax for lambda terms
 Literals are indicated by single quotes.
 
-	LambdaTerm := Constant | Variable | Application | LambdaAbstraction | Pair | FirstProjection | SecondProjection 
-	Constant := [a-z][a-zA-Z1-0]* # any sequence of letter and digits starting with a lower case letter
-	Variable := [A-Z][a-zA-Z1-0]* # any sequence of letter and digits starting with an upper case letter
-	Application := '(' LambdaTerm ' ' LambdaTerm ')' # The outer parentheses are optional. Application is left-associative so `(a b c)` stands for `((a b) c)`.
-	LambdaAbstraction := '\' Variable '->' LambdaTerm # Lambda abstraction is right-associative
-	Pair := '<' LambdaTerm ',' LambdaTerm '>'
-	FirstProjection := '1(' LambdaTerm ')'
-	SecondProjection := '2(' LambdaTerm ')'
+~~~~
+LambdaTerm := Constant | Variable | Application | LambdaAbstraction | Pair | FirstProjection | SecondProjection 
+Constant := [a-z][a-zA-Z1-0]* # any sequence of letter and digits starting with a lower case letter
+Variable := [A-Z][a-zA-Z1-0]* # any sequence of letter and digits starting with an upper case letter
+Application := '(' LambdaTerm ' ' LambdaTerm ')' # The outer parentheses are optional. Application is left-associative so `(a b c)` stands for `((a b) c)`.
+LambdaAbstraction := '\' Variable '->' LambdaTerm # Lambda abstraction is right-associative
+Pair := '<' LambdaTerm ',' LambdaTerm '>'
+FirstProjection := '1(' LambdaTerm ')'
+SecondProjection := '2(' LambdaTerm ')'
+~~~~
 
 Also unit and bind are implemented but don't use them for now.
 
