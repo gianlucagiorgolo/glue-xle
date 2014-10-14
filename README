@@ -36,11 +36,39 @@ setup.
           cabal build
           cabal install
 
-5. Now you can install
+5. Now you can install the wrapper. Again go where you want to download and build the wrapper and then type the following:
+
+		  git clone https://giorghy@bitbucket.org/giorghy/glue-xle.git glue-xle
+		  cd glue-xle
+		  cabal configure
+		  cabal build
+		  cabal install
+
+# Usage
+
+You invoke the wrapper with the command `glue-xle` with a single command which must be the filename of the grammar/lexicon.
+
+A very very simple grammar is included with the source code. So if you are in the `glue-xle` folder you can try the grammar with the following command:
+
+	glue-xle test.lfg
+
+This will start the wrapper that waits for you to type a sentence. The wrapper also starts automatically XLE for you (but see the Known issues section if you are on Mac OS X).
+
+After you type the sentence the wrapper sends it to XLE, which generates the appropriate c-structures and f-structures, which are then used to generate the semantic resources, which are finally passed to the theorem prover. What you get back are the non-equivalent readings. Here is an example of the interaction:
+
+	>>> a cat devours every dog
+	Readings for pool 1
+	some(cat)(\n.every(dog)(devour(n)))
+	every(dog)(\h.some(cat)(\l.devour(l)(h)))
+	>>> 
+
+To terminate the wrapper type `:quit` (actually also CTRL-D or CTRL-C should do the work, but use `:quit`).
+
+# Grammar writing
 
 
 
-# Known Issues
+# Known Issues and limitations
 
 1. On Mac OS X if X11 (XQuartz nowadays) is not running the wrapper
    will hang after starting XLE. Just kill it with CTRL-C and restart
@@ -51,3 +79,5 @@ setup.
    (possibly one coming from a previous session). So if the wrapper
    gives you back a reading that has nothing to do with the sentence
    you typed, the problem may be with the parsing process. 
+
+3. At this point only single file grammars are supported.
