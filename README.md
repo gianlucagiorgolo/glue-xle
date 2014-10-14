@@ -30,7 +30,7 @@ setup.
    prover. Go to wherever you want to download the theorem prover and
    the type the following:
 
-          git clone https://giorghy@bitbucket.org/giorghy/glue-tp-library.git glue-tp
+          git clone https://github.com/gianlucagiorgolo/glue-tp.git glue-tp
           cd glue-tp
           cabal configure
           cabal build
@@ -38,7 +38,7 @@ setup.
 
 5. Now you can install the wrapper. Again go where you want to download and build the wrapper and then type the following:
 
-		  git clone https://giorghy@bitbucket.org/giorghy/glue-xle.git glue-xle
+		  git clone https://github.com/gianlucagiorgolo/glue-xle.git glue-xle
 		  cd glue-xle
 		  cabal configure
 		  cabal build
