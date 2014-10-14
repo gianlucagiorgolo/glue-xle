@@ -97,8 +97,27 @@ SecondProjection := '2(' LambdaTerm ')'
 
 Also unit and bind are implemented but don't use them for now.
 
+### Syntax for linear formula recipes
+
+The syntax is composed of two parts: one for the f-structures and sigma-structures path, and one for the linear logic component.
+
+The syntax for f-structures path is the same you are used to from XLE, in particular `^` is used for the up arrow metavariable. Sigma projections are signaled with `_s`. Outside-in and inside-out paths for sigma structures are defined in the same way. 
+
+Atomic linear formulae must be typed. You do so by appending the type to the formula the type (which is any sequence of letters and digits starting with a lower case letter) and separating the two with a colon `:`. An atomic formula is either a sigma-structure or a variable (any sequence of letter and digits starting with an upper case letter).
+
+There are two linear connectives (actually three, but again don't use diamond for now):
+
+1. `--o`, linear implication
+
+2. `*`, linear tensor
+
+Both are right-associative. You can use square brackets around the conjuncts:
+
+	X:a --o [[Y:b * Z:c] --o W:d]
+
 ## Semantic templates
 
+You can specify specific semantic templates in a dedicated `SEMANTICTEMPLATES` section. Semantic templates are declared in the same way you declare standard templates, but are expanded by the wrapper and not by XLE.
 
 # Known Issues and limitations
 
