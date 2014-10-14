@@ -29,13 +29,11 @@ setup.
 4. The first piece of software you need to install is the theorem
    prover. Go to wherever you want to download the theorem prover and
    the type the following (`$` represents the prompt):
-<code>
-$ git clone https://giorghy@bitbucket.org/giorghy/glue-tp-library.git glue-tp
-$ cd glue-tp
-$ cabal configure
-$ cabal build
-$ cabal install
-</code>
+          $ git clone https://giorghy@bitbucket.org/giorghy/glue-tp-library.git glue-tp
+          $ cd glue-tp
+          $ cabal configure
+          $ cabal build
+          $ cabal install
    After some warnings you should have the prover library installed on your system.
 
 
