@@ -1,0 +1,53 @@
+# Introduction
+
+This is an extremely experimental and buggy wrapper around XLE that
+allows you to add semantics to your grammars and get back the readings
+for a sentence. It's still very basic and lacks a lot of relevant
+features.
+
+I have tested it only on Mac OS X, it should work out of the box on
+Linux, but the get it work on Windows some stuff must be changed. If
+anyone is interested in trying it on Windows get in contact with me
+and we can try to do it.
+
+# Requirements
+
+1. First of all you will need a local copy of XLE, installed and properly
+setup. 
+
+2. The wrapper is written in Haskell so the first thing you need to
+ compile it is the compiler. The best way to get it is to download the
+ [Haskell Platform](https://www.haskell.org/platform/) for your 
+ operating system. Install the platform and run `cabal update` to be
+ sure to be up to date.
+
+3. You need [Git](http://git-scm.com/) to get the code from
+   Bitbucket. You can find Git for your platform here
+   [http://git-scm.com/](http://git-scm.com/) (or you can just use the
+   package manager for your platform)
+
+4. The first piece of software you need to install is the theorem
+   prover. Go to wherever you want to download the theorem prover and
+   the type the following (`$` represents the prompt):
+<code>
+$ git clone https://giorghy@bitbucket.org/giorghy/glue-tp-library.git glue-tp
+$ cd glue-tp
+$ cabal configure
+$ cabal build
+$ cabal install
+</code>
+   After some warnings you should have the prover library installed on your system.
+
+
+
+# Known Issues
+
+1. On Mac OS X if X11 (XQuartz nowadays) is not running the wrapper
+   will hang after starting XLE. Just kill it with CTRL-C and restart
+   it, it should work.
+
+2. For some arcane reason I still have to understand, if the XLE can't
+   find any parse it will give you back the last successful parse
+   (possibly one coming from a previous session). So if the wrapper
+   gives you back a reading that has nothing to do with the sentence
+   you typed, the problem may be with the parsing process. 
