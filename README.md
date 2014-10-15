@@ -46,7 +46,7 @@ setup.
 
 # Usage
 
-You invoke the wrapper with the command `glue-xle` with a single command which must be the filename of the grammar/lexicon.
+You invoke the wrapper with the command `glue-xle` with a single argument which must be the filename of the grammar/lexicon.
 
 A very very simple grammar is included with the source code. So if you are in the `glue-xle` folder you can try the grammar with the following command:
 
