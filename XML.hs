@@ -16,7 +16,7 @@ import DataStructures
 parseXMLOutput :: FilePath -> IO [(CStructure,FStructure)]
 parseXMLOutput file = do
    contents <- readFile file
-   dom <- return $ fromJust $ parseXMLDoc contents
+   dom <- return $ fromJustWithMsg ("Oops, it seems that XLE generated a non-valid XML file...\n" ++ contents) $ parseXMLDoc contents
    choiceTree <- return $ collectContexts dom
 
    cxtGroups <- return $ contextGroups choiceTree
@@ -62,8 +62,8 @@ trim :: String -> String
 trim "" = ""
 trim s = reverse $ dropWhile isSpace $ reverse $ dropWhile isSpace s
 
-getContext el = fromJust $ findAttr (unqual "context") el
-getContexts el = parseContext $ fromJust $ findAttr (unqual "context") el
+getContext el = fromJustWithMsg ("Mmm I was expecting this element to have a 'context' attribute" ++ show el) $ findAttr (unqual "context") el
+getContexts el = parseContext $ fromJustWithMsg ("Mmm I was expecting this element to have a 'context' attribute" ++ show el) $ findAttr (unqual "context") el
 
 collectTerminals :: Tree a -> [a]
 collectTerminals (Node a []) = [a]
@@ -144,12 +144,12 @@ reconstructTree _ _ _ _ = undefined
 findSuitableTree :: Context -> Id -> [(Context,BinTree (Id,Label))] -> Map.Map Context (Set.Set Context) -> (Context,BinTree (Id,Label))
 findSuitableTree cxt id subtrees contextMap = 
     let aux legalContexts [] = error $ "Error in findSuitableTree, current context " ++ cxt ++ ", looking for id " ++ show id ++ ", in subtrees " ++ show subtrees ++ ", allowing the following legal contexts " ++ show legalContexts
-        aux legalContexts ((cxt,t) : rest) | Set.member cxt legalContexts && id == getId t = Just (cxt,t)
+        aux legalContexts ((cxt,t) : rest) | Set.member cxt legalContexts && id == getId t = (cxt,t)
                                            | otherwise = aux legalContexts rest
         getId (Terminal (id,_)) = id
         getId (Unary (id,_) _) = id
         getId (Binary _ (id,_) _) = id
-    in fromJust $ aux ((Map.!) contextMap cxt) subtrees
+    in aux ((Map.!) contextMap cxt) subtrees
 
 unknown_label = "UNKNOWN LABEL"
 
@@ -160,11 +160,11 @@ hasLabel el label = case findChild (unqual "label") el of
 
 getArg :: String -> Element -> String
 getArg n el = trim $ strContent $ head $ filterChildren p el where
-         p el = elName el == (unqual "arg") && isJust (findAttr (unqual "no") el) && (fromJust $ findAttr (unqual "no") el) == n
+         p el = elName el == (unqual "arg") && isJust (findAttr (unqual "no") el) && (fromJustWithMsg ("Mmm I was expecting this element to have a 'no' attribute" ++ show el) $ findAttr (unqual "no") el) == n
 
 getArgAsElement :: String -> Element -> Element
 getArgAsElement n el = head $ filterChildren p el where
-         p el = elName el == (unqual "arg") && isJust (findAttr (unqual "no") el) && (fromJust $ findAttr (unqual "no") el) == n
+         p el = elName el == (unqual "arg") && isJust (findAttr (unqual "no") el) && (fromJustWithMsg ("Mmm I was expecting this element to have a 'no' attribute" ++ show el) $ findAttr (unqual "no") el) == n
 
 createPhiMapping :: [(Context,(Id,FVar))] -> Map.Map Context (Set.Set Context) ->  Map.Map Context [(Id,FVar)]
 createPhiMapping x cxtMap = 
@@ -242,7 +242,7 @@ collectFConstraints dom = do
           feature = case rel of
                       Equality -> getArg "2" arg1
                       InSet -> no_feature
-          rel = case trim $ strContent $ fromJust $ findChild (unqual "label") constr of
+          rel = case trim $ strContent $ fromJustWithMsg ("Mmm I was expecting this element (while looking for the type of relation in an f-constraint) to have a 'label' child:" ++ show constr) $ findChild (unqual "label") constr of
                      "eq" -> Equality
                      "in_set" -> InSet
                      _ -> undefined
@@ -276,4 +276,8 @@ fromValue _ = undefined
 
 printXMLResults :: FilePath -> IO ()
 printXMLResults fp = parseXMLOutput fp >>= mapM_ (\(c,f) -> putStrLn $ (drawCStructure c) ++ "\n" ++ (drawFStructure f))
-   
+
+
+fromJustWithMsg :: String -> Maybe a -> a
+fromJustWithMsg _ (Just a) = a
+fromJustWithMsg m Nothing = error m 

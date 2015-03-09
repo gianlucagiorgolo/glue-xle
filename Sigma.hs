@@ -171,7 +171,7 @@ createResourcePool (c_struct, f_struct) lex = do
       lhsResources <- return $ evalState (mapM (\(i,l,t) -> instantiate t f_struct ((phiMapping c_struct) Map.! i) >>= \res -> clearLocalVarNames >> return (i,l,res)) pool) newState
       rootFvar <- return $ getRootFVar c_struct
       mainHeadId <- return $ getCopointingTreeId words (phiMapping c_struct) rootFvar
-      rhsFormula <- return $ positiveResource $ (\(_,_,t) -> t) $ fromJust $ find (\(i,_,_) -> i == mainHeadId) lhsResources
+      rhsFormula <- return $ positiveResource $ (\(_,_,t) -> t) $ fromJustWithMsg ("I couldn't construct the right-hand side of the sequent to prove. I tried to find a resource with id " ++ (show mainHeadId) ++ " among the following ones: " ++ (show lhsResources)) $ find (\(i,_,_) -> i == mainHeadId) lhsResources
       return (map (\(_,l,t) -> (l,t)) lhsResources,rhsFormula)
 
 getRootFVar :: CStructure -> FVar
@@ -189,3 +189,7 @@ positiveResource v@(Var _ _) = v
 positiveResource m@(M _ _) = m
 positiveResource p@(P _ _ _) = p
 positiveResource (I _ r _) = positiveResource r
+
+fromJustWithMsg :: String -> Maybe a -> a
+fromJustWithMsg _ (Just a) = a
+fromJustWithMsg m Nothing = error m 
